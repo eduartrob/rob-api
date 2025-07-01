@@ -56,7 +56,12 @@ export class UserController {
     
 
     async updateUser(id: string, data: { name?: string, email?: string, password?: string, phone?: string }): Promise<UserDocument | null> {
-        const user = await User.findByIdAndUpdate(id, data, { new: true }).exec();
+        const updateData: { name?: string, email?: string, password?: string, phone?: string } = { ...data };
+        if (updateData.password) {
+            const hashedPassword = await authService.hashPassword(updateData.password);
+            updateData.password = hashedPassword;
+        }
+        const user = await User.findByIdAndUpdate(id, updateData, { new: true }).exec();
         if (!user) {
             throw new Error('error-get-user');
         }

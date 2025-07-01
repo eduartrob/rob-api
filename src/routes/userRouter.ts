@@ -224,7 +224,7 @@ userRouter.post('/reset-password', async (req, res): Promise<void> => {
     try {
         const resetInfo = await userController.verifyResetCode(codeVerification);
         if(resetInfo){
-            await userController.updateUser(resetInfo.userId, newPassword);
+            await userController.updateUser(resetInfo.userId, { password: newPassword });
             res.status(200).json({ message: "password-reset-success" });
         }
     } catch (error: any) {
