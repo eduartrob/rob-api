@@ -4,6 +4,8 @@ import mongoose from 'mongoose';
 import { UserController } from '../controllers/userController';
 import { verifyToken, extractToken } from '../middlewares/authMiddleware';
 import { addTokenToBlacklist } from '../utils/tokenBlackList';
+import { authMiddleware } from "../middlewares/authMiddleware";
+
 
 const userController = new UserController();
 const userRouter = Router();
@@ -81,26 +83,22 @@ userRouter.post('/sign-in', async (req, res):Promise<void> => {
         }
     }
 });
-userRouter.put('/:id', async (req, res):Promise<void> => {
-    const { id } = req.params;
-    const { name, email, password, phone } = req.body;
-    if (!id || !mongoose.Types.ObjectId.isValid(id)){
-        res.status(406).json({ message: "required fields or invalid ID" });
-        return;
-    }
-    if (!name && !email && !password && !phone) {
-        res.status(400).json({ message: "No fields provided to update" });
-        return;
-    }
+userRouter.put('/update-user', authMiddleware, async (req, res):Promise<void> => {
     try {
-        const user = await userController.getUserById(id);
-        if (!user) {
-            res.status(404).json({ message: "user-not-found" });
+        if (!req.user) {
+            res.status(401).json({ message: "Unauthorized: user not found" });
             return;
         }
-        const updatedUser = await userController.updateUser(id, { name, email, password, phone });
+        const userId = req.user.userId as string;
+        const { name, email, password, phone } = req.body;
+        if (!name && !email && !password && !phone) {
+            res.status(400).json({ message: "No fields provided to update" });
+            return;
+        }
+        const updatedUser = await userController.updateUser(userId, { name: name, email: email, password: password, phone: phone });
         res.status(200).json(updatedUser);
-    } catch (error: any) {
+
+    } catch (error) {
         res.status(500).json({ message: "Internal server error", error });
     }
 }); 
