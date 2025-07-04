@@ -157,7 +157,11 @@ userRouter.post('/logout', async (req, res): Promise<void> => {
         res.status(200).json({ message: 'logout-successful' });
         return
     }
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message === 'invalid-token') {
+        res.status(401).json({ message: 'invalid-token' });
+        return;
+    }
     console.error('Logout error:', error);
     res.status(500).json({ message: 'internal-error' });
     return;
