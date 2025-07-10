@@ -7,7 +7,7 @@ export class S3Controller {
     if (!file) {
       throw new Error("file-required");
     }
-    const result = await uploadImageProfile(file);
+    const result = await uploadImageProfile(file, userId);
     const savedFile = await UserFile.create({
       userId: userId,
       key: result.Key,
@@ -26,6 +26,8 @@ export class S3Controller {
     };
 
   }
+
+  
 
 
   async uploadIcon(file: MulterFile, userId: string) {

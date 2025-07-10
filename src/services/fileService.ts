@@ -14,9 +14,9 @@ const s3Client = new S3Client({
 });
 
 
-export async function uploadImageProfile(file: Express.Multer.File) {
+export async function uploadImageProfile(file: Express.Multer.File, userId: string) {
   const bucket = process.env.IDRIVE_BUCKET || "default-bucket";
-  const key = `profile-images/${Date.now()}_${file.originalname}`; 
+  const key = `profile-images/${userId}/profile.jpg`;
   // Use a timestamp to ensure unique keys
   return uploadToS3({
     bucket,
@@ -25,6 +25,8 @@ export async function uploadImageProfile(file: Express.Multer.File) {
     contentType: file.mimetype,
   });
 }
+
+
 
 export async function uploadIcon(file: Express.Multer.File) {
   const bucket = process.env.IDRIVE_BUCKET || "default-bucket";
