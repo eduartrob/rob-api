@@ -22,14 +22,25 @@ export class UserController {
         }
         return user;
     }
-    async getUserByUsername(email: string, password: string): Promise<string> {
-        const user = await User.findOne({ email }).exec();
-        if (!user || !(await authService.comparePassword(password, user.password))) {
-            throw new Error('invalid-credentials');
-        }
-        const token = authService.generateToken({ id: user._id, email: user.email });
-        return token;
+    async getUserByUsername(email: string, password: string): Promise<{ token: string; user: { name: string; email: string; phone: string; region?: string} }> {
+    const user = await User.findOne({ email }).exec();
+
+    if (!user || !(await authService.comparePassword(password, user.password))) {
+        throw new Error('invalid-credentials');
     }
+
+    const token = authService.generateToken({ id: user._id, email: user.email });
+
+    // Construir el objeto de usuario con los campos deseados
+    const userData = {
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        region: user.region, // Incluye la región si existe
+    };
+
+    return { token, user: userData };
+}
     async getUserByEmail(email: string): Promise<UserDocument | null> {
         const user = await User.findOne({ email }).exec();
         if (!user) {

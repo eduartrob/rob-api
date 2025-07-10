@@ -69,8 +69,8 @@ userRouter.post('/sign-in', async (req, res):Promise<void> => {
     try {
         const userData = await userController.getUserByUsername(email, password);
         if (userData) {
-            res.setHeader("Authorization", `Bearer ${userData}`);
-            res.status(200).json({ message: "Login successful" });
+            res.setHeader("Authorization", `Bearer ${userData.token}`);
+            res.status(200).json({ message: "Login successful", data: userData.user });
             return;
         }
     } catch (error: any) {

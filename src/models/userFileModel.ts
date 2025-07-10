@@ -6,6 +6,7 @@ export interface IUserFile extends mongoose.Document {
   url: string;
   contentType: string;
   uploadedAt: Date;
+  
 }
 
 const userFileSchema = new mongoose.Schema<IUserFile>({

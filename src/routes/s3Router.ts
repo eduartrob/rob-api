@@ -9,6 +9,28 @@ const upload = multer();
 const s3Controller = new S3Controller();
 
 
+s3Router.post("/upload-image-profile", authMiddleware, upload.single("file"), async (req, res): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ message: "Unauthorized: user not found" });
+      return;
+    }
+
+    const userId = req.user.userId as string;
+    const file = req.file;
+    if (!file) {
+      res.status(400).json({ message: "File is required" });
+      return;
+    }
+    await s3Controller.uploadImageProfile(file, userId);
+    res.status(201).json({ message: "Image uploaded successfully", fileUrl: `https://your-bucket-name.s3.amazonaws.com/${file.originalname}` });
+  } catch (error: any) {
+    console.error("Error uploading image:", error);
+    res.status(500).json({ message: error.message || "Image upload failed" });
+  }
+});
+
+
 s3Router.post("/upload-icon", authMiddleware, upload.single("file"), async (req, res): Promise<void> => {
   try {
     if (!req.user) {

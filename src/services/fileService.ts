@@ -13,6 +13,19 @@ const s3Client = new S3Client({
   forcePathStyle: true,
 });
 
+
+export async function uploadImageProfile(file: Express.Multer.File) {
+  const bucket = process.env.IDRIVE_BUCKET || "default-bucket";
+  const key = `profile-images/${Date.now()}_${file.originalname}`; 
+  // Use a timestamp to ensure unique keys
+  return uploadToS3({
+    bucket,
+    key,
+    body: file.buffer,
+    contentType: file.mimetype,
+  });
+}
+
 export async function uploadIcon(file: Express.Multer.File) {
   const bucket = process.env.IDRIVE_BUCKET || "default-bucket";
   const key = `icons/${Date.now()}_${file.originalname}`;
@@ -48,10 +61,6 @@ export async function uploadApk(file: Express.Multer.File) {
     contentType: file.mimetype,
   });
 }
-
-
-
-
 
 export async function generatePresignedUrl(key: string): Promise<string> {
   const command = new GetObjectCommand({
