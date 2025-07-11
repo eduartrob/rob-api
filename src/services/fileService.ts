@@ -15,7 +15,7 @@ const s3Client = new S3Client({
 
 
 export async function uploadImageProfile(file: Express.Multer.File, userId: string) {
-  const bucket = process.env.IDRIVE_BUCKET || "default-bucket";
+  const bucket = process.env.IDRIVE_BUCKET || "storage-rob";
   const key = `profile-images/${userId}/profile.jpg`;
   // Use a timestamp to ensure unique keys
   return uploadToS3({

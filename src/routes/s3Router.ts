@@ -25,9 +25,9 @@ s3Router.post("/upload-image-profile", authMiddleware, upload.single("file"), as
     }
     await s3Controller.uploadImageProfile(file, userId);
     const bucketName = process.env.IDRIVE_BUCKET || "storage-rob";
-    const key = `profile-images/${userId}/${file.originalname}`;
-
-    res.status(201).json({ message: "Image uploaded successfully", fileUrl: `${bucketName}/${key}` });
+    const key = `profile-images/${userId}/profile.jpg`;
+    const signedUrl = await generateSignedUrl(bucketName, key, 3600);
+    res.status(201).json({ message: "Image uploaded successfully", fileUrl: signedUrl });
   } catch (error: any) {
     console.error("Error uploading image:", error);
     res.status(500).json({ message: error.message || "Image upload failed" });
