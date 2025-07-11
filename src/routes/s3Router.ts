@@ -23,9 +23,9 @@ s3Router.post("/upload-image-profile", authMiddleware, upload.single("file"), as
       return;
     }
     await s3Controller.uploadImageProfile(file, userId);
-    const bucketName = process.env.IDRIVE_ENDPOINT || "exist?";
-    const fileUrl = `https://${bucketName}.s3.amazonaws.com/${file.originalname}`;
-    res.status(201).json({ message: "Image uploaded successfully", fileUrl: fileUrl });
+    const bucketName = process.env.IDRIVE_ENDPOINT
+    const key = `profile-images/${userId}/${file.originalname}`;
+    res.status(201).json({ message: "Image uploaded successfully", fileUrl: `https://${bucketName}/${key}` });
   } catch (error: any) {
     console.error("Error uploading image:", error);
     res.status(500).json({ message: error.message || "Image upload failed" });
