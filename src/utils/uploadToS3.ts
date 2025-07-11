@@ -17,6 +17,7 @@ export async function uploadToS3({ bucket, key, body, contentType }: UploadParam
       Key: key,
       Body: body,
       ContentType: contentType,
+      ACL: "public-read"
     },
   });
 

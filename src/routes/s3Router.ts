@@ -3,6 +3,7 @@ import express from "express";
 import multer from "multer";
 import { S3Controller } from "../controllers/s3Controller";
 import { authMiddleware } from "../middlewares/authMiddleware";
+import { generateSignedUrl } from "../config/s3Client";
 
 const s3Router = express.Router();
 const upload = multer();
@@ -23,8 +24,9 @@ s3Router.post("/upload-image-profile", authMiddleware, upload.single("file"), as
       return;
     }
     await s3Controller.uploadImageProfile(file, userId);
-    const bucketName = process.env.IDRIVE_ENDPOINT
+    const bucketName = process.env.IDRIVE_BUCKET || "storage-rob";
     const key = `profile-images/${userId}/${file.originalname}`;
+
     res.status(201).json({ message: "Image uploaded successfully", fileUrl: `${bucketName}/${key}` });
   } catch (error: any) {
     console.error("Error uploading image:", error);
