@@ -51,10 +51,11 @@ userRouter.post('/sign-up', async (req, res):Promise<void> => {
             res.status(409).json({ error: 'User with provided name, email, or phone already exists' });
             return;
         }
-        const token = await userController.createUser({ name, email, password, phone });
+        const resultUser = await userController.createUser({ name, email, password, phone });
+   
 
-        res.setHeader("Authorization", `Bearer ${token}`);
-        res.status(201).json({ message: "User created successfully" });
+        res.setHeader("Authorization", `Bearer ${resultUser.token}`);
+        res.status(201).json({ message: "User created successfully", data: resultUser.user });
     }  catch (error: any) {
         console.error("Error in sign-up:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
