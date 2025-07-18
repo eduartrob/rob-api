@@ -56,12 +56,21 @@ export class UserController {
 
 
 
-    async createUser(data:{name: string, email: string, password: string, phone: string}): Promise<string> {
+    async createUser(data:{name: string, email: string, password: string, phone: string}): Promise<{ user: { name: string; email: string; phone: string; region?: string; }, token: string }> {
         const hashPassword = await authService.hashPassword(data.password);
         const newUser = new User({ ...data, password: hashPassword });
-        const savedUser = await newUser.save(); // Aquí guardas el usuario
+        const savedUser = await newUser.save();
         const token = authService.generateToken({ id: savedUser._id, email: savedUser.email });
-        return token;
+        const userData = {
+            name: savedUser.name,
+            email: savedUser.email,
+            phone: savedUser.phone,
+            region: savedUser.region,
+        };
+        return { 
+            user: userData, 
+            token: token 
+        };
     }
 
     
