@@ -1,5 +1,6 @@
-import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import path from "path";
 
 import { uploadToS3 } from "../utils/uploadToS3";
 
@@ -17,20 +18,6 @@ const s3Client = new S3Client({
 export async function uploadImageProfile(file: Express.Multer.File, userId: string) {
   const bucket = process.env.IDRIVE_BUCKET || "storage-rob";
   const key = `profile-images/${userId}/profile.jpg`;
-  // Use a timestamp to ensure unique keys
-  return uploadToS3({
-    bucket,
-    key,
-    body: file.buffer,
-    contentType: file.mimetype,
-  });
-}
-
-
-
-export async function uploadIcon(file: Express.Multer.File) {
-  const bucket = process.env.IDRIVE_BUCKET || "default-bucket";
-  const key = `icons/${Date.now()}_${file.originalname}`;
 
   return uploadToS3({
     bucket,
@@ -40,28 +27,55 @@ export async function uploadIcon(file: Express.Multer.File) {
   });
 }
 
-export async function uploadScreenshot(file: Express.Multer.File) {
-  const bucket = process.env.IDRIVE_BUCKET || "default-bucket";
-  const key = `screenshots/${Date.now()}_${file.originalname}`;
 
-  return uploadToS3({
+
+export async function uploadAppIcon(file: Express.Multer.File, appId: string) {
+  const bucket = process.env.IDRIVE_BUCKET || "storage-rob";
+  const key = `apps/${appId}/icon${path.extname(file.originalname)}`; // Clave: apps/{appId}/icon.ext
+
+  const result = await uploadToS3({
     bucket,
     key,
     body: file.buffer,
     contentType: file.mimetype,
   });
+  return { Key: result.Key, Location: result.Location };
 }
 
-export async function uploadApk(file: Express.Multer.File) {
-  const bucket = process.env.IDRIVE_BUCKET || "default-bucket";
-  const key = `apks/${Date.now()}_${file.originalname}`;
+export async function uploadAppScreenshot(file: Express.Multer.File, appId: string, index: number) {
+  const bucket = process.env.IDRIVE_BUCKET || "storage-rob";
+  const key = `apps/${appId}/screenshots/screenshot_${index}${path.extname(file.originalname)}`;
 
-  return uploadToS3({
+  const result = await uploadToS3({
     bucket,
     key,
     body: file.buffer,
     contentType: file.mimetype,
   });
+  return { Key: result.Key, Location: result.Location };
+}
+
+export async function uploadAppApk(file: Express.Multer.File, appId: string) {
+  const bucket = process.env.IDRIVE_BUCKET || "storage-rob";
+  const key = `apps/${appId}/apk/${path.basename(file.originalname)}`; // Clave: apps/{appId}/apk/nombre_original.ext
+
+  const result = await uploadToS3({
+    bucket,
+    key,
+    body: file.buffer,
+    contentType: file.mimetype,
+  });
+  return { Key: result.Key, Location: result.Location };
+}
+
+export async function deleteFileFromS3(key: string): Promise<void> {
+  const bucket = process.env.IDRIVE_BUCKET || "storage-rob";
+  const command = new DeleteObjectCommand({
+    Bucket: bucket,
+    Key: key,
+  });
+  await s3Client.send(command);
+  console.log(`Successfully deleted object with key: ${key} from bucket: ${bucket}`);
 }
 
 export async function generatePresignedUrl(key: string): Promise<string> {
