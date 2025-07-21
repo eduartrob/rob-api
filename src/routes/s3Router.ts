@@ -46,6 +46,29 @@ s3Router.get("/get-image-profile", authMiddleware, async (req, res): Promise<voi
   }
 });
 
+s3Router.get("/get-app-files/:appId", async (req, res): Promise<void> => {
+  try {
+    const { appId } = req.params;
+
+    if (!appId || !Types.ObjectId.isValid(appId)) {
+      res.status(400).json({ message: "Valid appId is required in the URL parameters." });
+      return;
+    }
+
+    const result = await s3Controller.getAppFilesByAppId(appId);
+    res.status(200).json(result);
+
+  } catch (error: any) {
+    console.error(`Error retrieving application files for appId ${req.params.appId}:`, error);
+    if (error.message === "App files not found for this application ID.") {
+      res.status(404).json({ message: error.message });
+    } else {
+      res.status(500).json({ message: error.message || "Failed to retrieve application files." });
+    }
+  }
+});
+
+
 s3Router.post("/upload-image-profile", authMiddleware, upload.single("file"), async (req, res): Promise<void> => {
   try {
     if (!req.user) {
@@ -69,7 +92,6 @@ s3Router.post("/upload-image-profile", authMiddleware, upload.single("file"), as
     res.status(500).json({ message: error.message || "Image upload failed" });
   }
 });
-
 
 s3Router.post("/upload-app-files", authMiddleware, uploadAppFiles, async (req, res): Promise<void> => {
   try {

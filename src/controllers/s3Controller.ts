@@ -6,6 +6,40 @@ import { App } from "../models/appModel";
 type MulterFile = Express.Multer.File;
 
 export class S3Controller {
+  async getAppFilesByAppId(appId: string): Promise<any> {
+    if (!Types.ObjectId.isValid(appId)) {
+      throw new Error("Invalid application ID.");
+    }
+
+    const appFileDoc = await AppFile.findOne({ appId: new Types.ObjectId(appId) }).exec();
+
+    if (!appFileDoc) {
+      throw new Error("App files not found for this application ID.");
+    }
+
+    // Generar URLs firmadas para todos los archivos
+    const signedIconUrl = appFileDoc.iconKey ? await generatePresignedUrl(appFileDoc.iconKey) : null;
+    const signedAppFileUrl = appFileDoc.appFileKey ? await generatePresignedUrl(appFileDoc.appFileKey) : null;
+
+    const signedScreenshotUrls = await Promise.all(
+      appFileDoc.screenshots.map(async (screenshot) => {
+        return screenshot.key ? await generatePresignedUrl(screenshot.key) : null;
+      })
+    );
+
+    return {
+      message: "Application files retrieved successfully.",
+      appFiles: {
+        appId: appFileDoc.appId,
+        iconUrl: signedIconUrl,
+        appFileUrl: signedAppFileUrl,
+        appFileSize: appFileDoc.appFileSize,
+        screenshots: signedScreenshotUrls.filter(url => url !== null),
+        uploadedAt: appFileDoc.uploadedAt,
+      },
+    };
+  }
+
   async uploadImageProfile(file: MulterFile, userId: string) {
     if (!file) {
       throw new Error("file-required");
