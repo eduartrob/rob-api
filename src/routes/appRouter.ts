@@ -2,110 +2,94 @@ import { Router } from 'express';
 import mongoose from 'mongoose';
 
 import { AppController } from '../controllers/appController';
-import { verifyToken } from '../middlewares/authMiddleware';
+import { authMiddleware, verifyToken } from '../middlewares/authMiddleware';
 
- const appController = new AppController();
- const appRouter = Router()
+const appController = new AppController();
+const appRouter = Router()
 
- appRouter.get('/all', async (req, res):Promise<void> => {
-    try {
-        const apps = await appController.getApps();
-        res.status(200).json(apps);
-    } catch (error) {
-        res.status(500).json({ error: 'error getting apps' });
-    }
- })
-
-appRouter.get('/:id', async (req, res):Promise<void> => {
-    const { id } = req.params;
-    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
-        res.status(406).json({ message: "required fields or invalid ID" });
-        return;
-    }
-    try {
-        const app = await appController.getAppById(id);
-        if (app) {
-            res.status(200).json(app);
-        }
-    } catch (error: any) {
-        if (error.message === 'error-get-app') {
-            res.status(404).json({ message: "app-not-found" });
-            return;
-        } else {
-            res.status(500).json({ message: "Internal server error" });
-            return;
-        }
-    }
-});
-
-appRouter.post('/create', async (req, res): Promise<void> => {
-    const { name, description, size, version, releaseDate, imageUrl } = req.body;
-
-    if (!name || !description || !size || !version || !releaseDate || !imageUrl) {
-        res.status(406).json({ message: "required fields" });
-        return;
-    }
-
-    let userId: string;
-    try {
-        const tokenData = verifyToken(req); // misma función que ya vimos
-        userId = tokenData.userId;
-    } catch (error) {
-        let message: string;
-        if (error && typeof error === 'object' && 'message' in error && typeof (error as any).message === 'string') {
-            message = (error as any).message === 'no-token' ? 'Token not provided' : 'Invalid or expired token';
-        } else {
-            message = 'Invalid or expired token';
-        }
-        res.status(401).json({ message });
-        return;
-    }
-
-    try {
-        const newApp = await appController.createApp({
-        name,
-        description,
-        size,
-        version,
-        releaseDate,
-        imageUrl,
-        developerId: userId
-        });
-
-        res.status(201).json(newApp);
-    } catch (error: any) {
-        res.status(500).json({ message: "Internal server error", error });
-    }
-});
-
-appRouter.put('/update/:id', async (req, res): Promise<void> => {
-  const { id } = req.params;
-  const { name, description, size, version, releaseDate, imageUrl } = req.body;
-
-  if (!id || !mongoose.Types.ObjectId.isValid(id)) {
-    res.status(406).json({ message: "required fields or invalid ID" });
-    return;
-  }
-
-  let userId: string;
-
+appRouter.get('/all', async (req, res):Promise<void> => {
   try {
-    const tokenData = verifyToken(req); // función que extrae userId del token
-    userId = tokenData.userId;
+      const apps = await appController.getApps();
+      res.status(200).json(apps);
   } catch (error) {
-    let message: string;
-    if (error && typeof error === 'object' && 'message' in error && typeof (error as any).message === 'string') {
-      message = (error as any).message === 'no-token' ? 'Token not provided' : 'Invalid or expired token';
-    } else {
-      message = 'Invalid or expired token';
-    }
-    res.status(401).json({ message });
+      res.status(500).json({ error: 'error getting apps' });
+  }
+})
+
+appRouter.get('/my-applications', authMiddleware, async (req, res):Promise<void> => {
+  if (!req.user) {
+    res.status(401).json({ message: "Unauthorized: user not found" });
     return;
   }
+  const userId = req.user.userId as string;
 
   try {
-    // Paso 1: obtener la app
-    const app = await appController.getAppById(id); // debe retornar la app con userId incluido
+      const app = await appController.getAppsByUserId(userId);
+      if (app) {
+          res.status(200).json(app);
+      }
+  } catch (error: any) {
+    if (error.message === 'not-content-app') {
+      res.status(204).json({ message: "No content" });
+      return;
+    } else if (error.message === 'error-get-app') {
+      res.status(404).json({ message: "apps-not-found" });
+      return;
+    } else {
+      res.status(500).json({ message: "Internal server error" });
+      return;
+    }
+  }
+});
+
+appRouter.post('/create', authMiddleware, async (req, res): Promise<void> => {
+  if (!req.user) {
+    res.status(401).json({ message: "Unauthorized: user not found" });
+    return;
+  }
+  const userId = req.user.userId as string;
+  const { name, description, version, releaseDate } = req.body;
+  if (!name || !description || !version || !releaseDate) {
+      res.status(406).json({ message: "required fields" });
+      return;
+  }
+  try {
+    const newApp = await appController.createApp({
+      name,
+      description,
+      version,
+      releaseDate,
+      developerId: userId
+    });
+
+    res.status(201).json({message: "App created successfully", app: newApp});
+  } catch (error: any) {
+    if (error.message === 'error-creating-app') {
+      res.status(422).json({ message: "Error creating app" });
+      return;
+    } else {
+      res.status(500).json({ message: "Internal server error", error });
+    }
+  }
+});
+
+appRouter.put('/update/:id', authMiddleware, async (req, res): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ message: "Unauthorized: user not found" });
+      return;
+    }
+    if (!req.params.id || !mongoose.Types.ObjectId.isValid(req.params.id)) {
+      res.status(406).json({ message: "required fields or invalid ID" });
+      return;
+    }
+    const userId = req.user.userId as string;
+    const { id } = req.params;
+    const { name, description, size, version, releaseDate } = req.body;
+
+
+
+    const app = await appController.getAppById(id);
 
     if (!app) {
       res.status(404).json({ message: "app-not-found" });
@@ -125,41 +109,31 @@ appRouter.put('/update/:id', async (req, res): Promise<void> => {
       size,
       version,
       releaseDate,
-      imageUrl
     });
 
     res.status(200).json(updatedApp);
   } catch (error: any) {
+    if (error.message === 'error-get-app') {
+      res.status(404).json({ message: "app-not-found" });
+      return;
+    } else if (error.message === 'error-creating-app') {
+      res.status(422).json({ message: "Error creating app" });
+      return;
+    }
     res.status(500).json({ message: "Internal server error", error });
   }
 });
 
-appRouter.delete('/delete/:id', async (req, res): Promise<void> => {
-  const { id } = req.params;
-
-  if (!id || !mongoose.Types.ObjectId.isValid(id)) {
-    res.status(406).json({ message: "required fields or invalid ID" });
-    return;
-  }
-
-  let userId: string;
-
+appRouter.delete('/delete/:id', authMiddleware, async (req, res): Promise<void> => {
   try {
-    const tokenData = verifyToken(req); // extrae userId del token
-    userId = tokenData.userId;
-  } catch (error) {
-    let message: string;
-    if (error && typeof error === 'object' && 'message' in error && typeof (error as any).message === 'string') {
-      message = (error as any).message === 'no-token' ? 'Token not provided' : 'Invalid or expired token';
-    } else {
-      message = 'Invalid or expired token';
+    if (!req.user) {
+      res.status(401).json({ message: "Unauthorized: user not found" });
+      return;
     }
-    res.status(401).json({ message });
-    return;
-  }
+    const userId = req.user.userId as string;
+    const { id } = req.params;
 
-  try {
-    const app = await appController.getAppById(id); // debe incluir userId
+    const app = await appController.getAppById(id);
 
     if (!app) {
       res.status(404).json({ message: "app-not-found" });
@@ -171,10 +145,18 @@ appRouter.delete('/delete/:id', async (req, res): Promise<void> => {
       return;
     }
 
-    await appController.deleteApp(id); // debes implementar esto en tu controlador
+    await appController.deleteApp(id);
 
     res.status(200).json({ message: "App eliminada correctamente" });
   } catch (error: any) {
+    if (error.message === 'app-not-found') {
+      res.status(404).json({ message: "app-not-found" });
+      return;
+    }
+    if (error.message === 'error-get-app') {
+      res.status(404).json({ message: "app-not-found" });
+      return;
+    }
     res.status(500).json({ message: "Internal server error", error });
   }
 });
