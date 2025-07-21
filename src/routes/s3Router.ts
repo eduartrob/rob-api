@@ -1,9 +1,13 @@
-// src/routes/s3Routes.ts
+import { S3Client, HeadObjectCommand } from "@aws-sdk/client-s3";
 import express from "express";
 import multer from "multer";
 import { S3Controller } from "../controllers/s3Controller";
 import { authMiddleware } from "../middlewares/authMiddleware";
 import { generateSignedUrl } from "../config/s3Client";
+
+import { s3Client } from "../config/s3Client";
+
+
 
 const s3Router = express.Router();
 const upload = multer();
@@ -11,7 +15,6 @@ const s3Controller = new S3Controller();
 
 s3Router.get("/get-image-profile", authMiddleware, async (req, res): Promise<void> => {
   try {
-    // 1. Verificar autenticación del usuario
     if (!req.user) {
       res.status(401).json({ message: "Unauthorized: user not found" });
       return;
@@ -19,19 +22,26 @@ s3Router.get("/get-image-profile", authMiddleware, async (req, res): Promise<voi
 
     const userId = req.user.userId as string;
     const bucketName = process.env.IDRIVE_BUCKET || "storage-rob";
-    const key = `profile-images/${userId}/profile.jpg`; // La misma clave usada para subir
+    const key = `profile-images/${userId}/profile.jpg`;
 
-    // 2. Generar una URL firmada para la foto de perfil
-    // El tiempo de expiración (en segundos) para la URL. 3600 segundos = 1 hora.
-    const signedUrl = await generateSignedUrl(bucketName, key, 3600);
+    
 
-    // 3. Enviar la URL de la imagen en la respuesta
-    res.status(200).json({ message: "Profile image URL retrieved successfully", fileUrl: signedUrl });
-
+    try {
+      await s3Client.send(new HeadObjectCommand({
+        Bucket: bucketName,
+        Key: key,
+      }));
+      const signedUrl = await generateSignedUrl(bucketName, key, 3600);
+      res.status(200).json({ message: "Profile image URL retrieved successfully", fileUrl: signedUrl });
+    } catch (headError: any) {
+      if (headError.name === 'NotFound' || headError.name === 'NoSuchKey') {
+        res.status(404).json({ message: "Profile image not found for this user", fileUrl: null });
+        return;
+      }
+      throw headError;
+    }
   } catch (error: any) {
     console.error("Error retrieving profile image URL:", error);
-    // Si el error es que el objeto no existe en S3 (ej. 404), podrías manejarlo específicamente
-    // o simplemente devolver un error 500 genérico.
     res.status(500).json({ message: error.message || "Failed to retrieve profile image URL" });
   }
 });
