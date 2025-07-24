@@ -109,33 +109,39 @@ s3Router.post("/upload-app-files", authMiddleware, uploadAppFiles, async (req, r
       screenshots?: Express.Multer.File[]
     };
 
-    // --- Validaciones de la RUTA (más flexibles para permitir actualizaciones) ---
+    let screenshotsToKeepUrls: string[] = [];
+    if (req.body.screenshotsToKeep) {
+      try {
+        screenshotsToKeepUrls = JSON.parse(req.body.screenshotsToKeep);
+        if (!Array.isArray(screenshotsToKeepUrls)) {
+          throw new Error("screenshotsToKeep must be a JSON array of strings.");
+        }
+      } catch (parseError) {
+        console.error("Error parsing screenshotsToKeep:", parseError);
+        res.status(400).json({ message: "Invalid screenshotsToKeep format. Must be a JSON array of strings." });
+        return;
+      }
+    }
+
     if (!appId || !Types.ObjectId.isValid(appId)) {
       res.status(400).json({ message: "Valid appId is required in the request body." });
       return;
     }
 
-    // Validar que al menos UN archivo se haya enviado
-    const hasFiles = (files.icon && files.icon.length > 0) ||
-                     (files.appFile && files.appFile.length > 0) ||
-                     (files.screenshots && files.screenshots.length > 0);
+    const hasNewFiles = (files.icon && files.icon.length > 0) ||
+                        (files.appFile && files.appFile.length > 0) ||
+                        (files.screenshots && files.screenshots.length > 0);
 
-    if (!hasFiles) {
-      res.status(400).json({ message: "At least one file (icon, appFile, or screenshots) must be provided for upload/update." });
+    if (!hasNewFiles && screenshotsToKeepUrls.length === 0) {
+      res.status(400).json({ message: "At least one new file (icon, appFile, or screenshots) or existing screenshot URLs (screenshotsToKeep) must be provided for upload/update." });
       return;
     }
 
-    const result = await s3Controller.uploadAppFiles(files, appId, userId);
-    res.status(201).json(result); // 201 Created es apropiado para creación o actualización de un recurso
+    const result = await s3Controller.uploadAppFiles(files, appId, userId, screenshotsToKeepUrls);
+    res.status(201).json(result);
 
   } catch (error: any) {
     console.error("Error uploading application files:", error);
-    // Puedes añadir manejo de errores más específico aquí si lo deseas
-    // Por ejemplo, para errores de Multer (ej. FILE_TOO_LARGE)
-    // if (error.code === 'LIMIT_FILE_SIZE') {
-    //   res.status(413).json({ message: 'One of the files is too large.' });
-    //   return;
-    // }
     res.status(500).json({ message: error.message || "Failed to upload application files." });
   }
 });
@@ -171,9 +177,6 @@ s3Router.delete("/delete-app-files/:appId", authMiddleware, async (req, res): Pr
     }
   }
 });
-
-
-
 
 s3Router.get("/files", authMiddleware, async (req, res): Promise<void> => {
   try {

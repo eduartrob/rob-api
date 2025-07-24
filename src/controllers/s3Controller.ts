@@ -5,6 +5,21 @@ import { Types } from "mongoose";
 import { App } from "../models/appModel";
 type MulterFile = Express.Multer.File;
 
+function cleanUrl(url: string): string {
+    try {
+        const parsedUrl = new URL(url);
+        // Retorna la URL sin el querystring ni el hash
+        return parsedUrl.origin + parsedUrl.pathname;
+    } catch (e) {
+        // En caso de que la URL sea inválida, retorna la original para evitar errores,
+        // aunque esto podría mantener el problema si la URL es realmente inválida.
+        // Es mejor asegurarse de que las URLs almacenadas sean válidas.
+        const errorMessage = (e instanceof Error) ? e.message : String(e);
+        console.warn(`Invalid URL for cleaning: ${url}. Error: ${errorMessage}`);
+        return url;
+    }
+}
+
 export class S3Controller {
   async getAppFilesByAppId(appId: string): Promise<any> {
     if (!Types.ObjectId.isValid(appId)) {
@@ -64,133 +79,170 @@ export class S3Controller {
 
   }
 
+
+
   async uploadAppFiles(
-    files: {
-      icon?: MulterFile[],
-      appFile?: MulterFile[],
-      screenshots?: MulterFile[]
-    },
-    appId: string,
-    userId: string // Para auditoría/permisos, aunque no se usa directamente en esta lógica de S3/DB
-  ) {
-    // Validar appId al inicio (una sola vez)
-    if (!Types.ObjectId.isValid(appId)) {
-        throw new Error("Invalid application ID.");
-    }
-
-    // Buscar el documento AppFile existente.
-    let appFileDoc = await AppFile.findOne({ appId: new Types.ObjectId(appId) });
-
-    // Si el documento NO existe, significa que es la primera vez que se suben archivos para esta app.
-    // En este caso, TODOS los archivos esenciales deben estar presentes.
-    if (!appFileDoc) {
-      if (!files.icon || files.icon.length === 0) {
-        throw new Error("Icon file is required for new app file entry.");
-      }
-      if (!files.appFile || files.appFile.length === 0) {
-        throw new Error("Application file (APK) is required for new app file entry.");
-      }
-      if (!files.screenshots || files.screenshots.length === 0) {
-        throw new Error("At least one screenshot is required for new app file entry.");
-      }
-
-      // Creamos un nuevo documento con valores iniciales vacíos, que se llenarán abajo
-      appFileDoc = new AppFile({
-        appId: new Types.ObjectId(appId),
-        iconUrl: "", iconKey: "",
-        appFileUrl: "", appFileKey: "",
-        appFileSize: 0, appFileContentType: "",
-        screenshots: [],
-        uploadedAt: new Date(),
-      });
-    }
-
-    // --- Subir y Actualizar Icono ---
-    if (files.icon && files.icon.length > 0) {
-      const iconFile = files.icon[0];
-      // Eliminar el icono antiguo si existe
-      if (appFileDoc.iconKey) {
-        try {
-          await deleteFileFromS3(appFileDoc.iconKey);
-        } catch (deleteError: any) {
-          console.warn(`Could not delete old icon (key: ${appFileDoc.iconKey}) for app ${appId}: ${deleteError.message}`);
-        }
-      }
-      const iconUploadResult = await uploadAppIcon(iconFile, appId);
-      if (!iconUploadResult.Location || !iconUploadResult.Key) { // Validar que Key también venga
-        throw new Error("Icon upload failed: Location or Key is undefined.");
-      }
-      appFileDoc.iconUrl = iconUploadResult.Location;
-      appFileDoc.iconKey = iconUploadResult.Key; // Guardar la clave
-    }
-
-    // --- Subir y Actualizar Archivo de la Aplicación (APK) ---
-    if (files.appFile && files.appFile.length > 0) {
-      const appFile = files.appFile[0];
-      // Eliminar el APK antiguo si existe
-      if (appFileDoc.appFileKey) {
-        try {
-          await deleteFileFromS3(appFileDoc.appFileKey);
-        } catch (deleteError: any) {
-          console.warn(`Could not delete old app file (key: ${appFileDoc.appFileKey}) for app ${appId}: ${deleteError.message}`);
-        }
-      }
-      const appFileUploadResult = await uploadAppApk(appFile, appId);
-      if (!appFileUploadResult.Location || !appFileUploadResult.Key) { // Validar que Key también venga
-        throw new Error("Application file upload failed: Location or Key is undefined.");
-      }
-      appFileDoc.appFileUrl = appFileUploadResult.Location;
-      appFileDoc.appFileKey = appFileUploadResult.Key; // Guardar la clave
-      appFileDoc.appFileSize = appFile.size;
-    }
-
-    // --- Subir y Reemplazar Capturas de Pantalla ---
-    if (files.screenshots && files.screenshots.length > 0) {
-      // Eliminar todas las capturas de pantalla antiguas
-      for (const oldScreenshot of appFileDoc.screenshots) {
-        try {
-          await deleteFileFromS3(oldScreenshot.key);
-        } catch (deleteError: any) {
-          console.warn(`Could not delete old screenshot (key: ${oldScreenshot.key}) for app ${appId}: ${deleteError.message}`);
-        }
-      }
-      appFileDoc.screenshots = []; // Resetear el array para las nuevas URLs/Keys
-
-      // Subir las nuevas capturas de pantalla
-      for (let i = 0; i < files.screenshots.length; i++) {
-        const screenshot = files.screenshots[i];
-        const screenshotUploadResult = await uploadAppScreenshot(screenshot, appId, i);
-        if (!screenshotUploadResult.Location || !screenshotUploadResult.Key) { // Validar que Key también venga
-          throw new Error(`Screenshot ${i} upload failed: Location or Key is undefined.`);
-        }
-        appFileDoc.screenshots.push({
-          url: screenshotUploadResult.Location,
-          key: screenshotUploadResult.Key, // Guardar la clave
-        });
-      }
-    }
-
-    // Actualizar la fecha de subida general
-    appFileDoc.uploadedAt = new Date();
-
-    await appFileDoc.save();
-
-    return {
-      message: "Archivos de aplicación actualizados y guardados con éxito.",
-      appFiles: {
-        id: appFileDoc._id,
-        appId: appFileDoc.appId,
-        iconUrl: appFileDoc.iconUrl,
-        iconKey: appFileDoc.iconKey,
-        appFileUrl: appFileDoc.appFileUrl,
-        appFileKey: appFileDoc.appFileKey,
-        appFileSize: appFileDoc.appFileSize,
-        screenshots: appFileDoc.screenshots, // Ya es un array de objetos {url, key}
-        uploadedAt: appFileDoc.uploadedAt,
+      files: {
+          icon?: MulterFile[],
+          appFile?: MulterFile[],
+          screenshots?: MulterFile[]
       },
-    };
-  }
+      appId: string,
+      userId: string,
+      screenshotsToKeepUrls: string[] // <-- ¡Este es el array de URLs firmadas del cliente!
+  ) {
+      if (!Types.ObjectId.isValid(appId)) {
+          throw new Error("Invalid application ID.");
+      }
 
+      let appFileDoc = await AppFile.findOne({ appId: new Types.ObjectId(appId) });
+
+      if (!appFileDoc) {
+          if (!files.icon || files.icon.length === 0) {
+              throw new Error("Icon file is required for new app file entry.");
+          }
+          if (!files.appFile || files.appFile.length === 0) {
+              throw new Error("Application file (APK) is required for new app file entry.");
+          }
+          if (!files.screenshots || files.screenshots.length === 0) {
+              throw new Error("At least one screenshot is required for new app file entry.");
+          }
+
+          appFileDoc = new AppFile({
+              appId: new Types.ObjectId(appId),
+              iconUrl: "", iconKey: "",
+              appFileUrl: "", appFileKey: "",
+              appFileSize: 0, appFileContentType: "",
+              screenshots: [],
+              uploadedAt: new Date(),
+          });
+      }
+
+      // --- Subir y Actualizar Icono ---
+      if (files.icon && files.icon.length > 0) {
+          const iconFile = files.icon[0];
+          if (appFileDoc.iconKey) {
+              try {
+                  await deleteFileFromS3(appFileDoc.iconKey);
+                  console.log(`Old icon deleted: ${appFileDoc.iconKey}`);
+              } catch (deleteError: any) {
+                  console.warn(`Could not delete old icon (key: ${appFileDoc.iconKey}) for app ${appId}: ${deleteError.message}`);
+              }
+          }
+          const iconUploadResult = await uploadAppIcon(iconFile, appId);
+          if (!iconUploadResult.Location || !iconUploadResult.Key) {
+              throw new Error("Icon upload failed: Location or Key is undefined.");
+          }
+          appFileDoc.iconUrl = iconUploadResult.Location;
+          appFileDoc.iconKey = iconUploadResult.Key;
+      }
+
+      // --- Subir y Actualizar Archivo de la Aplicación (APK) ---
+      if (files.appFile && files.appFile.length > 0) {
+          const appFile = files.appFile[0];
+          if (appFileDoc.appFileKey) {
+              try {
+                  await deleteFileFromS3(appFileDoc.appFileKey);
+                  console.log(`Old app file deleted: ${appFileDoc.appFileKey}`);
+              } catch (deleteError: any) {
+                  console.warn(`Could not delete old app file (key: ${appFileDoc.appFileKey}) for app ${appId}: ${deleteError.message}`);
+              }
+          }
+          const appFileUploadResult = await uploadAppApk(appFile, appId);
+          if (!appFileUploadResult.Location || !appFileUploadResult.Key) {
+              throw new Error("Application file upload failed: Location or Key is undefined.");
+          }
+          appFileDoc.appFileUrl = appFileUploadResult.Location;
+          appFileDoc.appFileKey = appFileUploadResult.Key;
+          appFileDoc.appFileSize = appFile.size;
+      }
+
+      // --- Lógica para Capturas de Pantalla ---
+      const currentScreenshotsInDb = appFileDoc.screenshots || [];
+
+      // Normalizar las URLs de las capturas de pantalla que el cliente quiere mantener
+      const cleanedScreenshotsToKeepUrls = screenshotsToKeepUrls.map(url => cleanUrl(url));
+      console.log("Cleaned screenshots to keep from client:", cleanedScreenshotsToKeepUrls);
+
+      // 1. Identificar capturas de pantalla a eliminar de S3
+      // Comparar las URLs limpias de la DB con las URLs limpias que se quieren mantener
+      const screenshotsToDeleteFromS3 = currentScreenshotsInDb.filter(
+          (screenshot: { url: string, key: string }) => {
+              const cleanedDbUrl = cleanUrl(screenshot.url);
+              const shouldDelete = !cleanedScreenshotsToKeepUrls.includes(cleanedDbUrl);
+              if (shouldDelete) {
+                  console.log(`Marking for deletion: ${screenshot.url} (cleaned: ${cleanedDbUrl})`);
+              }
+              return shouldDelete;
+          }
+      );
+
+      for (const screenshotToDelete of screenshotsToDeleteFromS3) {
+          try {
+              await deleteFileFromS3(screenshotToDelete.key);
+              console.log(`Screenshot deleted from S3: ${screenshotToDelete.key}`);
+          } catch (deleteError: any) {
+              console.warn(`Could not delete old screenshot (key: ${screenshotToDelete.key}) for app ${appId}: ${deleteError.message}`);
+          }
+      }
+
+      // 2. Construir la nueva lista de capturas de pantalla para la DB
+      const finalScreenshotsForDb: { url: string, key: string }[] = [];
+
+      // Añadir las capturas de pantalla que el cliente quiere mantener (y que aún existen en la DB)
+      // Usar las URLs limpias para encontrar la coincidencia
+      for (const screenshotUrlToKeep of cleanedScreenshotsToKeepUrls) {
+          const existingScreenshot = currentScreenshotsInDb.find(s => cleanUrl(s.url) === screenshotUrlToKeep);
+          if (existingScreenshot) {
+              finalScreenshotsForDb.push(existingScreenshot);
+              console.log(`Keeping existing screenshot: ${existingScreenshot.url}`);
+          }
+      }
+
+      // 3. Subir las nuevas capturas de pantalla y añadirlas a la lista final
+      if (files.screenshots && files.screenshots.length > 0) {
+          console.log(`Uploading ${files.screenshots.length} new screenshots.`);
+          for (let i = 0; i < files.screenshots.length; i++) {
+              const screenshot = files.screenshots[i];
+              const screenshotUploadResult = await uploadAppScreenshot(screenshot, appId, i);
+              if (!screenshotUploadResult.Location || !screenshotUploadResult.Key) {
+                  throw new Error(`Screenshot ${i} upload failed: Location or Key is undefined.`);
+              }
+              finalScreenshotsForDb.push({
+                  url: screenshotUploadResult.Location,
+                  key: screenshotUploadResult.Key,
+              });
+              console.log(`Added new screenshot: ${screenshotUploadResult.Location}`);
+          }
+      } else {
+          console.log("No new screenshots to upload.");
+      }
+
+      // Actualizar el array de screenshots en el documento de la base de datos
+      appFileDoc.screenshots = finalScreenshotsForDb;
+
+      // Actualizar la fecha de subida general
+      appFileDoc.uploadedAt = new Date();
+
+      await appFileDoc.save();
+      console.log("AppFile document saved successfully.");
+
+      return {
+          message: "Archivos de aplicación actualizados y guardados con éxito.",
+          appFiles: {
+              id: appFileDoc._id,
+              appId: appFileDoc.appId,
+              iconUrl: appFileDoc.iconUrl,
+              iconKey: appFileDoc.iconKey,
+              appFileUrl: appFileDoc.appFileUrl,
+              appFileKey: appFileDoc.appFileKey,
+              appFileSize: appFileDoc.appFileSize,
+              screenshots: appFileDoc.screenshots,
+              uploadedAt: appFileDoc.uploadedAt,
+          },
+      };
+  }
+  
    async deleteAppFiles(appId: string, requestingUserId: string): Promise<{ message: string }> {
     if (!Types.ObjectId.isValid(appId)) {
       throw new Error("Invalid application ID provided for deletion.");
@@ -243,7 +295,6 @@ export class S3Controller {
     return { message: `Application files for app ID ${appId} deleted successfully.` };
   }
 
-  
    async listUserFiles(userId: string) {
     const files = await UserFile.find({ userId }).exec();
 
