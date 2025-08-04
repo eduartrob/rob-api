@@ -40,8 +40,8 @@ userRouter.get('/:id', async (req, res):Promise<void> => {
     }
 });
 userRouter.post('/sign-up', async (req, res):Promise<void> => {
-    const { name, email, password, phone } = req.body;
-    if(!name || !email || !password || !phone){
+    const { name, email, password, phone, fsmToken } = req.body;
+    if(!name || !email || !password || !phone || !fsmToken){
         res.status(406).json({ message: "required fields" });
         return;
     }
@@ -51,7 +51,7 @@ userRouter.post('/sign-up', async (req, res):Promise<void> => {
             res.status(409).json({ error: 'User with provided name, email, or phone already exists' });
             return;
         }
-        const resultUser = await userController.createUser({ name, email, password, phone });
+        const resultUser = await userController.createUser({ name, email, password, phone, fsmToken});
    
 
         res.setHeader("Authorization", `Bearer ${resultUser.token}`);
@@ -62,13 +62,13 @@ userRouter.post('/sign-up', async (req, res):Promise<void> => {
   }
 });
 userRouter.post('/sign-in', async (req, res):Promise<void> => {
-    const { email, password } = req.body;
-    if (!email || !password) {
+    const { email, password, fsmToken } = req.body;
+    if (!email || !password || !fsmToken) {
         res.status(406).json({ message: "required fields" });
         return;
     }
     try {
-        const userData = await userController.getUserByUsername(email, password);
+        const userData = await userController.getUserByUsername(email, password, fsmToken);
         if (userData) {
             res.setHeader("Authorization", `Bearer ${userData.token}`);
             res.status(200).json({ message: "Login successful", data: userData.user });
@@ -168,10 +168,6 @@ userRouter.post('/logout', async (req, res): Promise<void> => {
     return;
   }
 });
-
-
-
-
 
 userRouter.post('/forgot', async (req, res): Promise<void> => {
   const { email } = req.body;

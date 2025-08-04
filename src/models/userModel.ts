@@ -6,6 +6,7 @@ export interface UserDocument extends Document {
   password: string;
   phone: string;
   region: string;
+  fcmTokens: string[];
 }
 
 const UserSchema: Schema<UserDocument> = new Schema({
@@ -13,7 +14,8 @@ const UserSchema: Schema<UserDocument> = new Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   phone: { type: String, required: true },
-  region: { type: String, required: false, default: 'Desconocido' }
+  region: { type: String, required: false, default: 'Desconocido' },
+  fcmTokens: { type: [String], required: false, default: [] }
 });
 
 export const User = mongoose.model<UserDocument>('User', UserSchema);
