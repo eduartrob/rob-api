@@ -7,6 +7,16 @@ import { addTokenToBlacklist } from '../utils/tokenBlackList';
 import { authMiddleware } from "../middlewares/authMiddleware";
 
 
+import serviceAccount from '../config/serviceAccountKey.json';
+import * as admin from 'firebase-admin';
+import { User } from '../models/userModel';
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount as admin.ServiceAccount)
+});
+console.log('Firebase Admin SDK inicializado.');
+
+
 const userController = new UserController();
 const userRouter = Router();
 
@@ -237,6 +247,122 @@ userRouter.post('/reset-password', async (req, res): Promise<void> => {
         }
     }
 }); 
+
+
+userRouter.post('/admin/login', async (req, res): Promise<void> => {
+    const { email, password } = req.body;
+    if (!email || !password) {
+        res.status(406).json({ message: "required fields" });
+        return;
+    }
+    try {
+        const userData = await userController.getUserByUsername(email, password, "");
+        if (userData) {
+            res.setHeader("Authorization", `Bearer ${userData.token}`);
+            res.status(200).json({ message: "Login successful", data: userData.user });
+            return;
+        }
+    } catch (error: any) {
+        if (error.message === 'invalid-credentials') {
+            res.status(404).json({ message: "email-password-incorrect" });
+            return;
+        } else {    
+            res.status(500).json({ message: "Internal server error", error });
+            return;
+        }
+    }
+});
+
+
+userRouter.post('/admin/sendNotificationToUser', async (req, res): Promise<void> => {
+    const { userId, title, body, customData } = req.body;
+
+    if (!userId || !title || !body) {
+        res.status(400).json({ message: 'Faltan userId, title o body.' });
+        return;
+    }
+
+    try {
+        const user = await userController.getUserById(userId);
+
+        if (!user || !user.fcmTokens || user.fcmTokens.length === 0) {
+            res.status(404).json({ message: 'Usuario no encontrado o sin tokens FCM.' });
+            return;
+        }
+
+        const message = {
+            notification: {
+                title: title,
+                body: body,
+            },
+            data: customData || {}, // Datos personalizados opcionales
+            tokens: user.fcmTokens, // Envía a todos los tokens de este usuario
+        };
+
+        const response = await admin.messaging().sendEachForMulticast(message);
+        console.log('Notificación enviada a usuario:', response);
+
+        // Opcional: Procesar resultados para limpiar tokens inválidos
+        // response.responses.forEach((resp, idx) => {
+        //     if (!resp.success && resp.error && resp.error.code === 'messaging/registration-token-not-registered') {
+        //         // Token inválido, deberías eliminar user.fcmTokens[idx] de la base de datos
+        //         console.log(`Token inválido: ${user.fcmTokens[idx]} para usuario ${user.email}`);
+        //     }
+        // });
+
+        res.status(200).json({ message: 'Notificación enviada al usuario.', firebaseResponse: response });
+
+    } catch (error: any) {
+        console.error('Error al enviar notificación a usuario:', error);
+        res.status(500).json({ message: 'Error interno del servidor al enviar notificación a usuario.', error: error.message });
+    }
+});
+
+userRouter.post('/admin/sendNotificationToAll', async (req, res): Promise<void> => {
+    const { title, body, customData } = req.body;
+
+    if (!title || !body) {
+        res.status(400).json({ message: 'Faltan title o body.' });
+        return;
+    }
+
+    try {
+        const allUsers = await User.find({}, 'fcmTokens').exec();
+        let allTokens: any[] = [];
+        allUsers.forEach(user => {
+            allTokens = allTokens.concat(user.fcmTokens || []);
+        });
+
+        // Eliminar duplicados si es necesario (aunque tu lógica de registro debería manejarlos)
+        allTokens = [...new Set(allTokens)];
+
+        if (allTokens.length === 0) {
+            res.status(404).json({ message: 'No hay tokens FCM registrados en la base de datos.' });
+            return;
+        }
+
+        const message = {
+            notification: {
+                title: title,
+                body: body,
+            },
+            data: customData || {}, // Datos personalizados opcionales
+            tokens: allTokens, // Envía a todos los tokens únicos
+        };
+
+        const response = await admin.messaging().sendEachForMulticast(message); // Envía a múltiples tokens
+        console.log('Notificación enviada a todos:', response);
+
+        res.status(200).json({ message: 'Notificación enviada a todos los usuarios.', firebaseResponse: response });
+
+    } catch (error) {
+        console.error('Error al enviar notificación a todos:', error);
+        res.status(500).json({ message: 'Error interno del servidor al enviar notificación a todos.'});
+    }
+});
+
+
+
 
 
 export default userRouter;

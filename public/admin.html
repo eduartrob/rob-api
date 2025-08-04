@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración - RobStore</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h2>Panel de Administración</h2>
+
+        <div class="section">
+            <h3>Enviar Mensaje a TODOS los Usuarios</h3>
+            <form id="sendToAllForm">
+                <div class="form-group">
+                    <label for="allTitle">Título:</label>
+                    <input type="text" id="allTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="allBody">Mensaje:</label>
+                    <textarea id="allBody" rows="3" required></textarea>
+                </div>
+                <button type="submit">Enviar a Todos</button>
+                <p id="allMessage" class="status-message"></p>
+            </form>
+        </div>
+
+        <div class="section">
+            <h3>Gestión de Usuarios</h3>
+            <p id="userListMessage" class="status-message"></p>
+            <table id="userTable">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Email</th>
+                        <th>Teléfono</th>
+                        <th>Región</th>
+                        <th>Tokens FCM</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
