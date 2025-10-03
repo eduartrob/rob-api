@@ -96,19 +96,21 @@ fi
 echo ">>> Construyendo imagen de la API y levantando el contenedor..."
 docker compose up --build -d
 
-# --- PASO 6: Configurar Nginx y Certbot ---
+# --- PASO 6: Configurar Nginx ---
 echo ""
 echo "### Configuración de Nginx y HTTPS ###"
-echo "El contenedor de la API está corriendo. Ahora debes configurar Nginx y Certbot manualmente."
-echo "1. Crea un archivo de configuración para Nginx en '/etc/nginx/sites-available/rob-api' con el siguiente contenido:"
-echo "--------------------------------------------------"
-cat <<EOF
+
+# Crear el archivo de configuración de Nginx para tu dominio
+NGINX_CONF_PATH="/etc/nginx/sites-available/rob-api"
+echo ">>> Creando archivo de configuración de Nginx en $NGINX_CONF_PATH..."
+
+sudo tee "$NGINX_CONF_PATH" > /dev/null <<EOF
 server {
     listen 80;
     server_name store.eduartrob.xyz;
 
     location / {
-        proxy_pass http://localhost:3000; # Asume que tu API corre en el puerto 3000
+        proxy_pass http://localhost:3000; # Redirige el tráfico al contenedor de la API
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
@@ -116,15 +118,18 @@ server {
     }
 }
 EOF
-echo "--------------------------------------------------"
-echo "2. Activa la configuración creando un enlace simbólico:"
-echo "   sudo ln -s /etc/nginx/sites-available/rob-api /etc/nginx/sites-enabled/"
-echo "3. Verifica que la sintaxis de Nginx es correcta:"
-echo "   sudo nginx -t"
-echo "4. Reinicia Nginx para aplicar los cambios:"
-echo "   sudo systemctl restart nginx"
-echo "5. Finalmente, ejecuta Certbot para obtener el certificado SSL y configurar HTTPS automáticamente:"
-echo "   sudo certbot --nginx -d store.eduartrob.xyz --non-interactive --agree-tos -m eduartrob@gmail.com"
+
+echo ">>> Activando la configuración de Nginx..."
+sudo ln -sf /etc/nginx/sites-available/rob-api /etc/nginx/sites-enabled/
+
+echo ">>> Verificando la sintaxis de Nginx..."
+sudo nginx -t
+
+echo ">>> Reiniciando Nginx para aplicar los cambios..."
+sudo systemctl restart nginx
+
+echo ">>> Solicitando certificado SSL con Certbot..."
+sudo certbot --nginx -d store.eduartrob.xyz --non-interactive --agree-tos -m eduartrob@gmail.com
 
 echo ""
 echo "### ¡Configuración completada! La aplicación debería estar corriendo. ###"
