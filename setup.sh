@@ -75,11 +75,9 @@ fi
 # --- PASO 5: Levantar la aplicación ---
 echo ">>> Intentando iniciar la aplicación con 'docker compose up -d'..."
 
-# Descargar las imágenes más recientes definidas en docker-compose.yml
-docker compose pull
-
-# Levantar todos los servicios (api y nginx) en segundo plano
-docker compose up -d
+# El comando 'up' con la bandera '--build' reconstruirá la imagen 'api'
+# y luego levantará todos los servicios en segundo plano.
+docker compose up -d --build
 
 echo ""
 echo "### ¡Configuración completada! La aplicación debería estar corriendo. ###"
