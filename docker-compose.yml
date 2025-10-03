@@ -4,6 +4,7 @@ services:
     image: ${DOCKERHUB_USERNAME}/rob-api:latest
     restart: always
     environment:
+      - DOCKERHUB_USERNAME=${DOCKERHUB_USERNAME} # Pasar el usuario de DockerHub a la API si es necesario
       - PORT=${PORT} # Puerto para la API
       - DATABASE_URL=${MONGODB_URI} # URL de conexión a MongoDB que la app espera
       - JWT_SECRET=${JWT_SECRET}

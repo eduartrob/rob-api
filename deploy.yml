@@ -52,9 +52,6 @@ jobs:
             # Navegar al directorio del proyecto donde está tu docker-compose.yml y tu .env manual
             cd $APP_DIR 
 
-            # Exportar el nombre de usuario para que docker-compose pueda encontrar la imagen correcta
-            export DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
-
             # Detener los servicios actuales, descargar las imágenes más recientes (como la de la API) y levantarlos de nuevo en segundo plano.
             # Docker Compose se encargará de todo el reinicio de manera ordenada.
             docker compose down
