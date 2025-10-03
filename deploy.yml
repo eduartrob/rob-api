@@ -48,17 +48,14 @@ jobs:
             # Asegurarse de que el directorio existe
             APP_DIR="/home/${{ secrets.EC2_USER }}/rob-api"
             mkdir -p $APP_DIR
-            cd $APP_DIR
 
-            # Crear el archivo .env con los secrets de GitHub
-            echo "${{ secrets.ENV_FILE }}" > .env
+            # Navegar al directorio del proyecto donde está tu docker-compose.yml y tu .env manual
+            cd $APP_DIR 
 
-            # Exportar el nombre de usuario de Docker Hub para que docker-compose lo use
+            # Exportar el nombre de usuario para que docker-compose pueda encontrar la imagen correcta
             export DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
-            
-            # Pull de la imagen más reciente desde Docker Hub
-            docker pull $DOCKERHUB_USERNAME/rob-api:latest
 
-            # Detener y reiniciar los servicios con docker-compose
+            # Detener los servicios actuales, descargar las imágenes más recientes (como la de la API) y levantarlos de nuevo en segundo plano.
+            # Docker Compose se encargará de todo el reinicio de manera ordenada.
             docker compose down
             docker compose up -d
