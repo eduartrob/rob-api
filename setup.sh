@@ -64,7 +64,8 @@ echo ">>> Intentando iniciar la aplicación con 'docker compose up -d'..."
 echo "Si el comando falla por permisos, puede que necesites salir y volver a entrar a la sesión SSH y ejecutar el script de nuevo."
 
 newgrp docker << END
-docker compose --env-file .env up -d
+cd /home/ubuntu/rob-api
+docker compose up -d
 END
 
 echo ""
