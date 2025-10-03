@@ -6,34 +6,8 @@ on:
       - develop
 
 jobs:
-  build-and-push:
-    name: Build and Push to Docker Hub
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/rob-api:latest
-
   deploy:
     name: Deploy to EC2
-    needs: build-and-push
     runs-on: ubuntu-latest
 
     steps:
@@ -44,15 +18,21 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            # Navegar al directorio de la aplicación
-            # Asegurarse de que el directorio existe
+            # Define el directorio de la aplicación
             APP_DIR="/home/${{ secrets.EC2_USER }}/rob-api"
-            mkdir -p $APP_DIR
 
-            # Navegar al directorio del proyecto donde está tu docker-compose.yml y tu .env manual
-            cd $APP_DIR 
+            # Navega al directorio. Si no existe, clona el repositorio. Si existe, actualízalo.
+            if [ -d "$APP_DIR" ]; then
+              cd $APP_DIR
+              echo ">>> Actualizando el repositorio..."
+              git pull origin develop
+            else
+              echo ">>> Clonando el repositorio por primera vez..."
+              git clone -b develop https://github.com/eduartrob/rob-api.git $APP_DIR
+              cd $APP_DIR
+            fi
 
-            # Detener los servicios actuales, descargar las imágenes más recientes (como la de la API) y levantarlos de nuevo en segundo plano.
-            # Docker Compose se encargará de todo el reinicio de manera ordenada.
-            docker compose down
-            docker compose up -d
+            echo ">>> Deteniendo servicios y construyendo la nueva imagen..."
+            # El comando 'up' con la bandera '--build' reconstruirá la imagen 'api'
+            # porque su código fuente ha cambiado, y luego levantará los servicios.
+            docker compose up -d --build
