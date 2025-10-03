@@ -60,5 +60,5 @@ jobs:
             docker pull $DOCKERHUB_USERNAME/rob-api:latest
 
             # Detener y reiniciar los servicios con docker-compose
-            docker-compose down
-            docker-compose up -d
+            docker compose down
+            docker compose up -d

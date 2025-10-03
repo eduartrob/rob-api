@@ -59,27 +59,23 @@ El sistema está diseñado para configurar y renovar los certificados SSL de for
 
 ### Guía de Puesta en Marcha Inicial (En el Servidor EC2)
 
-Una vez que el repositorio está listo en tu máquina y has preparado tu instancia EC2 (con Docker, Docker Compose y Git instalados), sigue estos pasos **la primera y única vez** que configures el servidor:
+Para configurar la aplicación en una nueva instancia EC2 (basada en Ubuntu), solo necesitas ejecutar un script que automatiza toda la instalación y configuración.
 
-1.  **Clona el repositorio en tu EC2**:
+1.  **Conéctate a tu instancia EC2 por SSH.**
+
+2.  **Descarga y ejecuta el script de configuración**:
+    Este comando descargará la última versión del script `setup.sh` de la rama `develop` y lo ejecutará.
     ```bash
-    git clone https://github.com/tu-usuario/tu-repositorio.git rob-api
-    cd rob-api
+    wget https://raw.githubusercontent.com/eduartrob/rob-api/develop/setup.sh
+    chmod +x setup.sh
+    ./setup.sh
     ```
 
-2.  **Crea el archivo de entorno (`.env`)**: El pipeline automático lo crea por ti, pero para este primer arranque manual, debes crearlo tú.
-    ```bash
-    # Crea el archivo .env
-    nano .env
-    ```
-    Dentro de ese archivo, pega el contenido de tus variables de entorno de producción (el mismo que usarás en el *secret* `ENV_FILE` de GitHub).
+3.  **Sigue las instrucciones del script**:
+    *   El script te pedirá que **pegues el contenido de tu archivo `.env`** de producción.
+    *   Te informará que necesitas **salir y volver a entrar a la sesión SSH** para que los permisos de Docker se apliquen correctamente. Después de volver a conectarte, puedes ejecutar `./setup.sh` de nuevo si es necesario, y el script omitirá los pasos ya completados.
 
-3.  **Ejecuta la aplicación con Docker Compose**:
-    No ejecutas un archivo específico, sino que usas Docker Compose, que lee el archivo `docker-compose.yml` y levanta todos los servicios por ti.
-    ```bash
-    docker-compose up -d
-    ```
-    Este único comando descargará las imágenes necesarias, iniciará los contenedores (API, Base de Datos, Nginx) y el script de Nginx se encargará automáticamente de generar los certificados SSL. A partir de aquí, el pipeline de GitHub Actions se encargará de las futuras actualizaciones.
+¡Y eso es todo! El script se encarga de instalar Docker, clonar el repositorio y levantar la aplicación. A partir de este punto, el pipeline de CI/CD en GitHub se encargará de los despliegues futuros automáticamente.
 
 ### Conclusiones
 
