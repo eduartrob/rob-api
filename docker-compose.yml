@@ -25,5 +25,5 @@ services:
     depends_on:
       - api
     # Usamos una imagen de Nginx que tiene Certbot instalado
-    # y ejecutamos nuestro script de entrada.
-    command: /bin/sh -c "apk add --no-cache certbot openssl && chmod +x /entrypoint.sh && /entrypoint.sh"
+    # y ejecutamos nuestro script de entrada (que ya instala Certbot).
+    command: /entrypoint.sh

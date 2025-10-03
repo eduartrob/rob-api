@@ -8,6 +8,10 @@ DOMAIN="store.eduartrob.xyz"
 EMAIL="eduartrob@gmail.com"
 STAGING=0 # Cambia a 1 para usar el entorno de pruebas de Let's Encrypt
 
+# Instalar Certbot y OpenSSL dentro del contenedor
+echo ">>> Instalando Certbot y OpenSSL en el contenedor..."
+apk add --no-cache certbot openssl
+
 echo "### Iniciando script de Certbot ###"
 
 # Ruta de los certificados

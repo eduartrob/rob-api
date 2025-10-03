@@ -61,6 +61,10 @@ setup_docker_permissions
 # --- PASO 3: Clonar o actualizar el repositorio ---
 clone_or_update_repo
 
+# --- PASO 4: Asegurar permisos de ejecución para scripts ---
+echo ">>> Asegurando permisos de ejecución para scripts..."
+chmod +x entrypoint.sh nginx/entrypoint.sh
+
 # --- PASO 4: Pausa para cargar el archivo .env ---
 if [ ! -f ".env" ]; then
     echo ""
