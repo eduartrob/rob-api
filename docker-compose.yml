@@ -9,21 +9,3 @@ services:
     # Las variables de entorno se cargarán desde el archivo .env
     env_file:
       - .env
-
-  nginx:
-    image: nginx:1.25-alpine
-    container_name: rob-nginx
-    restart: always
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/entrypoint.sh:/entrypoint.sh
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./certbot/conf:/etc/letsencrypt
-      - ./certbot/www:/var/www/certbot
-    depends_on:
-      - api
-    # Usamos una imagen de Nginx que tiene Certbot instalado
-    # y ejecutamos nuestro script de entrada (que ya instala Certbot).
-    command: /entrypoint.sh

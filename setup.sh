@@ -5,6 +5,8 @@ set -e
 
 echo "### Iniciando script de configuración para Rob-API ###"
 
+# --- Funciones de Ayuda ---
+
 function install_docker() {
     if ! command -v docker &> /dev/null; then
         echo ">>> Instalando Docker..."
@@ -38,6 +40,25 @@ function setup_docker_permissions() {
     fi
 }
 
+function install_nginx_certbot() {
+    if ! command -v nginx &> /dev/null; then
+        echo ">>> Instalando Nginx..."
+        sudo apt-get update
+        sudo apt-get install -y nginx
+        sudo systemctl start nginx
+        sudo systemctl enable nginx
+    else
+        echo ">>> Nginx ya está instalado."
+    fi
+
+    if ! command -v certbot &> /dev/null; then
+        echo ">>> Instalando Certbot..."
+        sudo apt-get install -y certbot python3-certbot-nginx
+    else
+        echo ">>> Certbot ya está instalado."
+    fi
+}
+
 function clone_or_update_repo() {
     if [ -d "rob-api" ]; then
         echo ">>> El directorio rob-api ya existe. Entrando y actualizando..."
@@ -50,20 +71,15 @@ function clone_or_update_repo() {
     fi
 }
 
-# --- PASO 1: Instalar Docker ---
+# --- PASO 1: Instalar dependencias del servidor ---
 install_docker
+install_nginx_certbot
 
-# --- PASO 2: Verificar y configurar permisos de Docker ---
-# Si el usuario no está en el grupo 'docker', el script lo añadirá y se detendrá,
-# pidiendo al usuario que se reconecte y vuelva a ejecutarlo.
+# --- PASO 2: Verificar y configurar permisos ---
 setup_docker_permissions
 
 # --- PASO 3: Clonar o actualizar el repositorio ---
 clone_or_update_repo
-
-# --- PASO 4: Asegurar permisos de ejecución para scripts ---
-echo ">>> Asegurando permisos de ejecución para scripts..."
-chmod +x entrypoint.sh nginx/entrypoint.sh
 
 # --- PASO 4: Pausa para cargar el archivo .env ---
 if [ ! -f ".env" ]; then
@@ -76,10 +92,39 @@ if [ ! -f ".env" ]; then
     fi
 fi
 
-# --- PASO 5: Levantar la aplicación ---
-echo ">>> Construyendo imagen y levantando la aplicación con 'docker compose up -d --build'..."
-
+# --- PASO 5: Construir y levantar el contenedor de la API ---
+echo ">>> Construyendo imagen de la API y levantando el contenedor..."
 docker compose up --build -d
+
+# --- PASO 6: Configurar Nginx y Certbot ---
+echo ""
+echo "### Configuración de Nginx y HTTPS ###"
+echo "El contenedor de la API está corriendo. Ahora debes configurar Nginx y Certbot manualmente."
+echo "1. Crea un archivo de configuración para Nginx en '/etc/nginx/sites-available/rob-api' con el siguiente contenido:"
+echo "--------------------------------------------------"
+cat <<EOF
+server {
+    listen 80;
+    server_name store.eduartrob.xyz;
+
+    location / {
+        proxy_pass http://localhost:3000; # Asume que tu API corre en el puerto 3000
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+}
+EOF
+echo "--------------------------------------------------"
+echo "2. Activa la configuración creando un enlace simbólico:"
+echo "   sudo ln -s /etc/nginx/sites-available/rob-api /etc/nginx/sites-enabled/"
+echo "3. Verifica que la sintaxis de Nginx es correcta:"
+echo "   sudo nginx -t"
+echo "4. Reinicia Nginx para aplicar los cambios:"
+echo "   sudo systemctl restart nginx"
+echo "5. Finalmente, ejecuta Certbot para obtener el certificado SSL y configurar HTTPS automáticamente:"
+echo "   sudo certbot --nginx -d store.eduartrob.xyz --non-interactive --agree-tos -m eduartrob@gmail.com"
 
 echo ""
 echo "### ¡Configuración completada! La aplicación debería estar corriendo. ###"

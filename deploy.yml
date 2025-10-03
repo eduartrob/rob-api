@@ -32,7 +32,7 @@ jobs:
               cd $APP_DIR
             fi
 
-            echo ">>> Deteniendo servicios y construyendo la nueva imagen..."
-            # El comando 'up' con la bandera '--build' reconstruirá la imagen 'api'
-            # porque su código fuente ha cambiado, y luego levantará los servicios.
-            docker compose up -d --build
+            echo ">>> Reconstruyendo la imagen de la API y reiniciando el contenedor..."
+            # El comando 'up' con '--build' reconstruirá la imagen 'api' si el código ha cambiado.
+            # No afectará a Nginx, ya que se ejecuta en el host.
+            docker compose up --build -d
