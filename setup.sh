@@ -31,14 +31,22 @@ sudo usermod -aG docker $USER
 echo "!!! IMPORTANTE: Para que los permisos de Docker tomen efecto, necesitas salir y volver a entrar a la sesión SSH, o ejecutar 'newgrp docker'."
 
 # --- 3. Clonar el repositorio ---
-if [ -d "rob-api" ]; then
-  echo ">>> El directorio rob-api ya existe. Omitiendo clonación."
+if [[ $(basename "$PWD") == "rob-api" ]]; then
+  # Si ya estamos en el directorio rob-api, solo actualizamos
+  echo ">>> Ya estás en el directorio 'rob-api'. Actualizando con git pull..."
+  git pull
 else
-  echo ">>> Clonando el repositorio..."
-  git clone https://github.com/eduartrob/rob-api.git
+  # Si no, clonamos si no existe
+  if [ -d "rob-api" ]; then
+    echo ">>> El directorio rob-api ya existe. Entrando y actualizando..."
+    cd rob-api
+    git pull
+  else
+    echo ">>> Clonando el repositorio..."
+    git clone https://github.com/eduartrob/rob-api.git
+    cd rob-api
+  fi
 fi
-
-cd rob-api || exit
 
 # --- 4. Esperar por el archivo .env ---
 if [ ! -f ".env" ]; then

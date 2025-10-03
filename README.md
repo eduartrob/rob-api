@@ -59,7 +59,7 @@ El sistema está diseñado para configurar y renovar los certificados SSL de for
 
 ### Guía de Puesta en Marcha Inicial (En el Servidor EC2)
 
-Para configurar y arrancar la aplicación en una nueva instancia EC2 (basada en Ubuntu), el proceso se ha automatizado en un único script.
+Para configurar y arrancar la aplicación en una nueva instancia EC2 (basada en Ubuntu), el proceso se ha automatizado en un único script. Se recomienda ejecutar estos comandos desde el directorio de inicio (`/home/ubuntu`).
 
 1.  **Conéctate a tu instancia EC2 por SSH.**
 
