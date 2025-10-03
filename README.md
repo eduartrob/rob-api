@@ -57,6 +57,30 @@ El sistema está diseñado para configurar y renovar los certificados SSL de for
 2.  Clonar el repositorio.
 3.  Asegurarte de que tu dominio `store.eduartrob.xyz` apunta a la IP de la instancia.
 
+### Guía de Puesta en Marcha Inicial (En el Servidor EC2)
+
+Una vez que el repositorio está listo en tu máquina y has preparado tu instancia EC2 (con Docker, Docker Compose y Git instalados), sigue estos pasos **la primera y única vez** que configures el servidor:
+
+1.  **Clona el repositorio en tu EC2**:
+    ```bash
+    git clone https://github.com/tu-usuario/tu-repositorio.git rob-api
+    cd rob-api
+    ```
+
+2.  **Crea el archivo de entorno (`.env`)**: El pipeline automático lo crea por ti, pero para este primer arranque manual, debes crearlo tú.
+    ```bash
+    # Crea el archivo .env
+    nano .env
+    ```
+    Dentro de ese archivo, pega el contenido de tus variables de entorno de producción (el mismo que usarás en el *secret* `ENV_FILE` de GitHub).
+
+3.  **Ejecuta la aplicación con Docker Compose**:
+    No ejecutas un archivo específico, sino que usas Docker Compose, que lee el archivo `docker-compose.yml` y levanta todos los servicios por ti.
+    ```bash
+    docker-compose up -d
+    ```
+    Este único comando descargará las imágenes necesarias, iniciará los contenedores (API, Base de Datos, Nginx) y el script de Nginx se encargará automáticamente de generar los certificados SSL. A partir de aquí, el pipeline de GitHub Actions se encargará de las futuras actualizaciones.
+
 ### Conclusiones
 
 La implementación de este pipeline de CI/CD nos permite:
