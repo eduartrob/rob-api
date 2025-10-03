@@ -1,27 +1,11 @@
 services:
   api:
     container_name: rob-api
-    image: ${DOCKERHUB_USERNAME}/rob-api:latest
+    image: eduartrob/rob-api:latest
     restart: always
-    environment:
-      - PORT=${PORT} # Puerto para la API
-      - DATABASE_URL=${MONGODB_URI} # URL de conexión a MongoDB que la app espera
-      - JWT_SECRET=${JWT_SECRET}
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - AWS_REGION=${AWS_REGION}
-      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
-      - EMAIL_USER=${EMAIL_USER}
-      - EMAIL_PASS=${EMAIL_PASS}
-    depends_on:
-      - mongo
-
-  mongo:
-    image: mongo:latest
-    container_name: rob-mongo
-    restart: always
-    volumes:
-      - ./data:/data/db
+    # Las variables de entorno se cargarán desde el archivo .env
+    env_file:
+      - .env
 
   nginx:
     image: nginx:1.25-alpine
