@@ -1,13 +1,11 @@
-version: '3.8'
-
 services:
   api:
     container_name: rob-api
     image: ${DOCKERHUB_USERNAME}/rob-api:latest
     restart: always
     environment:
-      - PORT=${PORT}
-      - MONGODB_URI=${MONGODB_URI}
+      - PORT=${PORT} # Puerto para la API
+      - DATABASE_URL=${MONGODB_URI} # URL de conexión a MongoDB que la app espera
       - JWT_SECRET=${JWT_SECRET}
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
