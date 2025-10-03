@@ -9,3 +9,6 @@ services:
     # Las variables de entorno se cargarán desde el archivo .env
     env_file:
       - .env
+    ports:
+      # Mapea el puerto 3000 del host al puerto 3000 del contenedor
+      - "3000:3000"
