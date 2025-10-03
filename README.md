@@ -59,12 +59,12 @@ El sistema está diseñado para configurar y renovar los certificados SSL de for
 
 ### Guía de Puesta en Marcha Inicial (En el Servidor EC2)
 
-Para configurar la aplicación en una nueva instancia EC2 (basada en Ubuntu), solo necesitas ejecutar un script que automatiza toda la instalación y configuración.
+Para configurar y arrancar la aplicación en una nueva instancia EC2 (basada en Ubuntu), el proceso se ha automatizado en un único script.
 
 1.  **Conéctate a tu instancia EC2 por SSH.**
 
 2.  **Descarga y ejecuta el script de configuración**:
-    Este comando descargará la última versión del script `setup.sh` de la rama `develop` y lo ejecutará.
+    Estos comandos descargarán el script, le darán permisos de ejecución y lo iniciarán.
     ```bash
     wget https://raw.githubusercontent.com/eduartrob/rob-api/develop/setup.sh
     chmod +x setup.sh
@@ -72,10 +72,11 @@ Para configurar la aplicación en una nueva instancia EC2 (basada en Ubuntu), so
     ```
 
 3.  **Sigue las instrucciones del script**:
-    *   El script te pedirá que **pegues el contenido de tu archivo `.env`** de producción.
-    *   Te informará que necesitas **salir y volver a entrar a la sesión SSH** para que los permisos de Docker se apliquen correctamente. Después de volver a conectarte, puedes ejecutar `./setup.sh` de nuevo si es necesario, y el script omitirá los pasos ya completados.
+    *   El script instalará todas las dependencias necesarias (Docker, Docker Compose, etc.).
+    *   Hará una pausa y te pedirá que **cargues tu archivo `.env`** (y cualquier otro archivo de configuración que necesites) en el directorio del proyecto. Puedes usar `scp` o un cliente SFTP para esto.
+    *   Una vez que hayas subido los archivos y presiones "Enter", el script **levantará automáticamente todos los servicios** con `docker compose up -d`.
 
-¡Y eso es todo! El script se encarga de instalar Docker, clonar el repositorio y levantar la aplicación. A partir de este punto, el pipeline de CI/CD en GitHub se encargará de los despliegues futuros automáticamente.
+A partir de este momento, el pipeline de CI/CD en GitHub se encargará de los despliegues futuros de forma automática cada vez que hagas un `push` a la rama `develop`.
 
 ### Conclusiones
 

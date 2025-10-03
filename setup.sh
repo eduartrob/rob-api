@@ -38,19 +38,27 @@ else
   git clone https://github.com/eduartrob/rob-api.git
 fi
 
-cd rob-api
+cd rob-api || exit
 
-# --- 4. Crear el archivo .env ---
-echo ">>> Creando el archivo .env..."
-read -p "Por favor, pega el contenido de tu archivo .env de producción y presiona Enter: " env_content
-echo "$env_content" > .env
-echo ">>> Archivo .env creado."
+# --- 4. Esperar por el archivo .env ---
+if [ ! -f ".env" ]; then
+    echo ""
+    echo ">>> PAUSA: El archivo .env no se ha encontrado."
+    read -p ">>> Por favor, carga tu archivo '.env' en el directorio '$(pwd)' y luego presiona [Enter] para continuar..."
+    if [ ! -f ".env" ]; then
+        echo ">>> ERROR: El archivo .env sigue sin encontrarse. Abortando."
+        exit 1
+    fi
+fi
 
 # --- 5. Levantar la aplicación ---
-echo ">>> Ejecutando 'docker compose up -d'. Puede que necesites ejecutar 'newgrp docker' primero si este es el primer uso."
-echo "Si el siguiente comando falla por permisos, ejecuta 'newgrp docker' y luego './setup.sh' de nuevo."
+echo ">>> Intentando iniciar la aplicación con 'docker compose up -d'..."
+echo "Si el comando falla por permisos, puede que necesites salir y volver a entrar a la sesión SSH y ejecutar el script de nuevo."
 
+newgrp docker << END
 docker compose up -d
+END
 
+echo ""
 echo "### ¡Configuración completada! La aplicación debería estar corriendo. ###"
 echo "Puedes ver los logs con: docker compose logs -f"
