@@ -4,7 +4,7 @@ services:
     # Indica a Docker Compose que construya la imagen desde el directorio actual
     # usando el Dockerfile que se encuentra ahí.
     build: .
-    image: eduartrob/rob-api:latest
+    image: eduartrob/rob-api:latest # Nombre que se le dará a la imagen construida localmente
     restart: always
     # Las variables de entorno se cargarán desde el archivo .env
     env_file:

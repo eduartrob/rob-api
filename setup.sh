@@ -73,11 +73,9 @@ if [ ! -f ".env" ]; then
 fi
 
 # --- PASO 5: Levantar la aplicación ---
-echo ">>> Intentando iniciar la aplicación con 'docker compose up -d'..."
+echo ">>> Construyendo imagen y levantando la aplicación con 'docker compose up -d --build'..."
 
-# El comando 'up' con la bandera '--build' reconstruirá la imagen 'api'
-# y luego levantará todos los servicios en segundo plano.
-docker compose up -d --build
+docker compose up --build -d
 
 echo ""
 echo "### ¡Configuración completada! La aplicación debería estar corriendo. ###"
