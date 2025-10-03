@@ -45,13 +45,19 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             # Navegar al directorio de la aplicación
-            cd /home/${{ secrets.EC2_USER }}/rob-api
+            # Asegurarse de que el directorio existe
+            APP_DIR="/home/${{ secrets.EC2_USER }}/rob-api"
+            mkdir -p $APP_DIR
+            cd $APP_DIR
 
             # Crear el archivo .env con los secrets de GitHub
             echo "${{ secrets.ENV_FILE }}" > .env
 
+            # Exportar el nombre de usuario de Docker Hub para que docker-compose lo use
+            export DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
+            
             # Pull de la imagen más reciente desde Docker Hub
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/rob-api:latest
+            docker pull $DOCKERHUB_USERNAME/rob-api:latest
 
             # Detener y reiniciar los servicios con docker-compose
             docker-compose down
