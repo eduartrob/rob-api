@@ -1,0 +1,353 @@
+### API de Usuarios (/users)
+
+---
+
+#### 1. Crear Usuario (Create)
+- **Método**: POST
+- **Ruta**: /users/sign-up
+- **Descripción**: Registra un nuevo usuario en el sistema.
+- **Cuerpo de la Petición (Request)**:
+  ```json
+  {
+    "name": "string",
+    "email": "string",
+    "password": "string",
+    "phone": "string",
+    "fsmToken": "string"
+  }
+  ```
+- **Respuesta Exitosa (201 Created)**:
+  - **Header**: `Authorization: Bearer <token>`
+  - **Cuerpo**:
+    ```json
+    {
+      "message": "User created successfully",
+      "data": {
+        "name": "string",
+        "email": "string",
+        "phone": "string",
+        "region": "string" (opcional)
+      }
+    }
+    ```
+
+---
+
+#### 2. Leer Todos los Usuarios (Read All)
+- **Método**: GET
+- **Ruta**: /users/all
+- **Descripción**: Obtiene una lista de todos los usuarios registrados.
+- **Cuerpo de la Petición (Request)**: ninguno
+- **Respuesta Exitosa (200 OK)**:
+  ```json
+  [
+    {
+      "_id": "string",
+      "name": "string",
+      "email": "string",
+      "phone": "string",
+      "region": "string" (opcional),
+      "fcmTokens": ["string"],
+      "createdAt": "date",
+      "updatedAt": "date"
+    }
+  ]
+  ```
+
+---
+
+#### 3. Leer un Usuario por ID (Read One)
+- **Método**: GET
+- **Ruta**: /users/:id
+- **Descripción**: Obtiene la información de un usuario específico por su ID.
+- **Parámetros de Ruta**:
+  - `id`: string (ObjectId de MongoDB)
+- **Cuerpo de la Petición (Request)**: ninguno
+- **Respuesta Exitosa (200 OK)**:
+  ```json
+  {
+    "_id": "string",
+    "name": "string",
+    "email": "string",
+    "phone": "string",
+    "region": "string" (opcional),
+    "fcmTokens": ["string"],
+    "createdAt": "date",
+    "updatedAt": "date"
+  }
+  ```
+
+---
+
+#### 4. Actualizar Usuario (Update)
+- **Método**: PUT
+- **Ruta**: /users/update-user
+- **Descripción**: Actualiza los datos de un usuario autenticado. El ID del usuario se obtiene del token JWT.
+- **Autenticación**: Requerida (Token JWT en header `Authorization`).
+- **Cuerpo de la Petición (Request)**:
+  ```json
+  {
+    "name": "string" (opcional),
+    "email": "string" (opcional),
+    "password": "string" (opcional),
+    "phone": "string" (opcional)
+  }
+  ```
+- **Respuesta Exitosa (200 OK)**:
+  ```json
+  {
+    "_id": "string",
+    "name": "string",
+    "email": "string",
+    "phone": "string",
+    "region": "string" (opcional),
+    "fcmTokens": ["string"],
+    "createdAt": "date",
+    "updatedAt": "date"
+  }
+  ```
+
+---
+
+#### 5. Eliminar Usuario (Delete)
+- **Método**: DELETE
+- **Ruta**: /users/:id
+- **Descripción**: Elimina un usuario específico por su ID.
+- **Parámetros de Ruta**:
+  - `id`: string (ObjectId de MongoDB)
+- **Cuerpo de la Petición (Request)**: ninguno
+- **Respuesta Exitosa (200 OK)**:
+  ```json
+  {
+    "message": "user delete sucellesfull"
+  }
+  ```
+
+---
+---
+
+### API de Aplicaciones (/apps)
+
+---
+
+#### 6. Crear Aplicación (Create)
+- **Método**: POST
+- **Ruta**: /apps/create
+- **Descripción**: Crea una nueva aplicación asociada al desarrollador autenticado.
+- **Autenticación**: Requerida (Token JWT).
+- **Cuerpo de la Petición (Request)**:
+  ```json
+  {
+    "name": "string",
+    "description": "string",
+    "version": "string",
+    "releaseDate": "date"
+  }
+  ```
+- **Respuesta Exitosa (201 Created)**:
+  ```json
+  {
+    "_id": "string",
+    "name": "string",
+    "description": "string",
+    "version": "string",
+    "developerId": "string",
+    "releaseDate": "date",
+    "imageUrl": "string" (opcional)
+  }
+  ```
+
+---
+
+#### 7. Leer Todas las Aplicaciones (Read All)
+- **Método**: GET
+- **Ruta**: /apps/all
+- **Descripción**: Obtiene una lista de todas las aplicaciones.
+- **Cuerpo de la Petición (Request)**: ninguno
+- **Respuesta Exitosa (200 OK)**: Array de documentos de aplicación (ver #6).
+
+---
+
+#### 8. Leer Aplicaciones por Desarrollador (Read by Developer)
+- **Método**: GET
+- **Ruta**: /apps/by-developer/:userId
+- **Descripción**: Obtiene las aplicaciones de un desarrollador específico.
+- **Autenticación**: Requerida (Token JWT).
+- **Parámetros de Ruta**:
+  - `userId`: string (ObjectId de MongoDB)
+- **Cuerpo de la Petición (Request)**: ninguno
+- **Respuesta Exitosa (200 OK)**: Array de documentos de aplicación (ver #6).
+
+---
+
+#### 9. Leer una Aplicación por ID (Read One)
+- **Método**: GET
+- **Ruta**: /apps/:id
+- **Descripción**: Obtiene los detalles de una aplicación específica.
+- **Parámetros de Ruta**:
+  - `id`: string (ObjectId de MongoDB)
+- **Cuerpo de la Petición (Request)**: ninguno
+- **Respuesta Exitosa (200 OK)**: Documento de aplicación (ver #6).
+
+---
+
+#### 10. Actualizar Aplicación (Update)
+- **Método**: PUT
+- **Ruta**: /apps/update/:id
+- **Descripción**: Actualiza los detalles de una aplicación. Requiere que el usuario autenticado sea el propietario.
+- **Autenticación**: Requerida (Token JWT, con verificación de propiedad).
+- **Parámetros de Ruta**:
+  - `id`: string (ObjectId de MongoDB)
+- **Cuerpo de la Petición (Request)**:
+  ```json
+  {
+    "name": "string" (opcional),
+    "description": "string" (opcional),
+    "version": "string" (opcional),
+    "releaseDate": "date" (opcional)
+  }
+  ```
+- **Respuesta Exitosa (200 OK)**: Documento de la aplicación actualizada (ver #6).
+
+---
+
+#### 11. Eliminar Aplicación (Delete)
+- **Método**: DELETE
+- **Ruta**: /apps/delete/:id
+- **Descripción**: Elimina una aplicación y sus archivos asociados. Requiere que el usuario autenticado sea el propietario.
+- **Autenticación**: Requerida (Token JWT, con verificación de propiedad).
+- **Parámetros de Ruta**:
+  - `id`: string (ObjectId de MongoDB)
+- **Cuerpo de la Petición (Request)**: ninguno
+- **Respuesta Exitosa (200 OK)**:
+  ```json
+  { "message": "App deleted successfully" }
+  ```
+
+---
+---
+
+### API de Archivos (S3)
+
+---
+
+#### 12. Subir/Actualizar Archivos de Aplicación (Create/Update)
+- **Método**: POST
+- **Ruta**: /s3/upload/app-files/:appId
+- **Descripción**: Sube o actualiza los archivos de una aplicación (icono, APK, capturas de pantalla).
+- **Autenticación**: Requerida (Token JWT, con verificación de propiedad).
+- **Parámetros de Ruta**:
+  - `appId`: string (ObjectId de MongoDB)
+- **Cuerpo de la Petición (Request)**: `multipart/form-data`
+  - `icon`: (fichero de imagen)
+  - `appFile`: (fichero .apk)
+  - `screenshots`: (array de ficheros de imagen)
+  - `screenshotsToKeepUrls`: string (JSON stringified array de URLs a mantener en una actualización)
+- **Respuesta Exitosa (200 OK)**:
+  ```json
+  {
+    "message": "Archivos de aplicación actualizados y guardados con éxito.",
+    "appFiles": {
+      "id": "string",
+      "appId": "string",
+      "iconUrl": "string",
+      "appFileUrl": "string",
+      "appFileSize": "number",
+      "screenshots": [ { "url": "string", "key": "string" } ],
+      "uploadedAt": "date"
+    }
+  }
+  ```
+
+---
+
+#### 13. Leer Archivos de Aplicación (Read)
+- **Método**: GET
+- **Ruta**: /s3/app-files/:appId
+- **Descripción**: Obtiene las URLs firmadas y temporales para acceder a los archivos de una aplicación.
+- **Parámetros de Ruta**:
+  - `appId`: string (ObjectId de MongoDB)
+- **Cuerpo de la Petición (Request)**: ninguno
+- **Respuesta Exitosa (200 OK)**:
+  ```json
+  {
+    "message": "Application files retrieved successfully.",
+    "appFiles": {
+      "appId": "string",
+      "iconUrl": "string" (URL firmada),
+      "appFileUrl": "string" (URL firmada),
+      "appFileSize": "number",
+      "screenshots": ["string" (URL firmada)],
+      "uploadedAt": "date"
+    }
+  }
+  ```
+
+---
+
+#### 14. Eliminar Archivos de Aplicación (Delete)
+- **Método**: DELETE
+- **Ruta**: /s3/app-files/:appId
+- **Descripción**: Elimina todos los archivos de S3 asociados a una aplicación.
+- **Autenticación**: Requerida (Token JWT, con verificación de propiedad).
+- **Parámetros de Ruta**:
+  - `appId`: string (ObjectId de MongoDB)
+- **Cuerpo de la Petición (Request)**: ninguno
+- **Respuesta Exitosa (200 OK)**:
+  ```json
+  { "message": "Application files for app ID ... deleted successfully." }
+  ```
+
+---
+---
+
+### Rutas Adicionales (No CRUD)
+
+---
+
+#### 15. Iniciar Sesión (Sign In)
+- **Método**: POST
+- **Ruta**: /users/sign-in
+- **Cuerpo de la Petición (Request)**:
+  ```json
+  {
+    "email": "string",
+    "password": "string",
+    "fsmToken": "string"
+  }
+  ```
+- **Respuesta Exitosa (200 OK)**:
+  - **Header**: `Authorization: Bearer <token>`
+  - **Cuerpo**:
+    ```json
+    {
+      "message": "Login successful",
+      "data": {
+        "name": "string",
+        "email": "string",
+        "phone": "string",
+        "region": "string" (opcional)
+      }
+    }
+    ```
+
+---
+
+#### 16. Subir Imagen de Perfil
+- **Método**: POST
+- **Ruta**: /s3/upload/profile-image
+- **Autenticación**: Requerida (Token JWT)
+- **Cuerpo de la Petición (Request)**: `multipart/form-data`
+  - `file`: (fichero de imagen)
+- **Respuesta Exitosa (200 OK)**:
+  ```json
+  {
+    "message": "Imagen de perfil subida con éxito",
+    "file": {
+      "id": "string",
+      "url": "string",
+      "contentType": "string",
+      "uploadedAt": "date"
+    }
+  }
+  ```

@@ -33,7 +33,7 @@ else
     -subj "/CN=localhost"
 
   echo ">>> Certificados dummy creados."
-fi
+
 
 # Iniciar Nginx en segundo plano
 echo ">>> Iniciando Nginx en segundo plano..."
